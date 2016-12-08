@@ -1,0 +1,50 @@
+import numpy as np
+import cv2
+from os import listdir, system
+from sklearn.cluster import KMeans
+from matplotlib import pyplot as plt
+
+folder_path="data/trial"
+files = [f for f in listdir(folder_path)]
+imageDescs={}
+X1=[]
+K=200
+lengths=[0]
+sift = cv2.xfeatures2d.SIFT_create()
+#print files
+#Matches every image with the other
+for i in range(0, len(files)):
+    img1 = cv2.imread(folder_path+"/"+files[i],0) # queryImage
+    kp,imageDescs[i]= sift.detectAndCompute(img1,None)
+    imageDescs[i]=np.array(imageDescs[i])
+    if len(X1)==0:
+	X1=imageDescs[i]
+    else:
+    	X1=np.concatenate((X1, imageDescs[i]), axis=0)
+    #print X1.shape
+    lengths.append(len(X1))
+    #print ("*********")	
+#print lengths
+kmeans = KMeans(n_clusters=K, random_state=0).fit(X1)
+#print kmeans.labels_
+#print kmeans.cluster_centers_
+X2=[]
+for i in range(0, len(files)):
+    hist,edges=np.histogram(kmeans.labels_[lengths[i]:lengths[i+1]], bins=range(0,K+1))
+    X2.append(hist)
+    #plt.hist(kmeans.labels_[lengths[i]:lengths[i+1]], bins=range(0,K+1))  # plt.hist passes it's arguments to np.histogram
+    #plt.title("Histogram for "+str(i))
+    #plt.show()
+X2=np.array(X2)
+X3=np.zeros(X2.shape)
+X3[X2>0]=1
+#print X3
+kmeans = KMeans(n_clusters=3, random_state=0).fit(X2)
+#print kmeans.labels_
+
+kmeans = KMeans(n_clusters=3, random_state=0).fit(X3)
+#print kmeans.labels_
+np.savetxt("boolen_feature_vector.csv", X3, delimiter=",", fmt="%s")
+np.savetxt("feature_vector.csv", X2, delimiter=",", fmt="%s")
+outfile = open('file_list.txt', 'w')
+outfile.write(", ".join(files))
